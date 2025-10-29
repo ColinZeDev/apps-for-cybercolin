@@ -1,1 +1,150 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Linx-Term</title>
+        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/xterm/css/xterm.css">
+        <link rel="shortcut icon" href="https://cdn.cybercolin.org/linux64.png">
+        <style>
+            html, body {
+                margin: 0;
+                height: 100%;
+                overflow: hidden;
+                background-color: #1a1200;
+            }
+            #terminal {
+                width: 100%;
+                height: 100%;
+            }
+        </style>
+    </head>
+    <body>
+        <div id="terminal"></div>
+        <script src="https://cdn.jsdelivr.net/npm/xterm/lib/xterm.js"></script>
+        <script>
+            const username = "user";
+            const term = new Terminal({
+                theme: { background: '#1a1200', foreground: '#ffa500' },
+                cursorBlink: true
+            });
 
+            term.open(document.getElementById('terminal'));
+
+            function printBanner() {
+                term.writeln("Welcome to Linx-Term Terminal!");
+                term.writeln("Type 'help' to get started.\n");
+            }
+
+            printBanner();
+
+            const commands = {
+                help: () => {
+                    term.writeln('');
+                    term.writeln("Available commands: help, about, whoami, projects, open, clear");
+                },
+                about: () => {
+                    term.writeln('');
+                    term.writeln("CyberColin — Personal web playground. Fake Linux terminal demo.");
+                },
+                whoami: () => {
+                    term.writeln('');
+                    term.writeln(username);
+                },
+                projects: () => {
+                    term.writeln('');
+                    term.writeln("Projects:");
+                    term.writeln(" - personal-site: My main personal site");
+                    term.writeln(" - linx-term: Fake CLI terminal demo");
+                },
+                open: (arg) => {
+                    term.writeln('');
+                    if (!arg) {
+                        term.writeln("Usage: open <project>");
+                        return;
+                    }
+                    const projectUrls = {
+                        'personal-site': 'https://cybercolin.org',
+                        'linx-term': 'https://apps.cybercolin.org/linux_terminal'
+                    };
+                    if (projectUrls[arg]) {
+                        term.writeln(`Opening ${projectUrls[arg]} (simulated)`);
+                    } else {
+                        term.writeln(`No project named '${arg}'`);
+                    }
+                },
+                clear: () => {
+                    term.clear();
+                    printBanner();
+                }
+            };
+
+            let currentInput = '';
+            let commandHistory = [];
+            let historyIndex = -1;
+
+            term.prompt = () => {
+                term.write(`\r\n${username}@cybercolin:~$ `);
+                currentInput = '';
+            };
+
+            term.prompt();
+
+            term.onKey(e => {
+                const ev = e.domEvent;
+                const printable = !ev.altKey && !ev.ctrlKey && !ev.metaKey;
+
+                if (ev.key === 'Enter') {
+                    if (currentInput.trim()) commandHistory.push(currentInput);
+                    historyIndex = commandHistory.length;
+                    handleCommand(currentInput.trim());
+                    term.prompt();
+                } else if (ev.key === 'Backspace') {
+                    if (currentInput.length > 0) {
+                        currentInput = currentInput.slice(0, -1);
+                        term.write('\b \b');
+                    }
+                } else if (ev.key === 'ArrowUp') {
+                    if (commandHistory.length === 0) return;
+                    if (historyIndex > 0) historyIndex--;
+                    replaceInput(commandHistory[historyIndex]);
+                } else if (ev.key === 'ArrowDown') {
+                    if (commandHistory.length === 0) return;
+                    if (historyIndex < commandHistory.length - 1) {
+                        historyIndex++;
+                        replaceInput(commandHistory[historyIndex]);
+                    } else {
+                        historyIndex = commandHistory.length;
+                        replaceInput('');
+                    }
+                } else if (printable) {
+                    currentInput += e.key;
+                    term.write(e.key);
+                }
+            });
+
+            function replaceInput(text) {
+                while (currentInput.length > 0) {
+                    term.write('\b \b');
+                    currentInput = currentInput.slice(0, -1);
+                }
+                currentInput = text;
+                term.write(text);
+            }
+
+            function handleCommand(input) {
+                if (!input) return;
+                const parts = input.split(' ');
+                const cmd = parts[0];
+                const arg = parts.slice(1).join(' ');
+                if (commands[cmd]) {
+                    term.writeln('');
+                    commands[cmd](arg);
+                } else {
+                    term.writeln('');
+                    term.writeln(`${cmd}: command not found`);
+                }
+            }
+        </script>
+    </body>
+</html>
